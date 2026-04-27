@@ -1,0 +1,210 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Omni-Vault — light editorial DeFi design system.
+ * Pure white surfaces, deep ink type, Omni red accent.
+ * All colors in oklch.
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Space Mono", ui-monospace, "SF Mono", monospace;
+  --font-display: "Archivo Black", "Inter", system-ui, sans-serif;
+
+  /* Editorial layer (used across the whole app) */
+  --color-cream: var(--cream);
+  --color-cream-soft: var(--cream-soft);
+  --color-ink: var(--ink);
+  --color-omni: var(--omni);
+  --color-omni-soft: var(--omni-soft);
+
+  --shadow-card: 0 1px 0 0 rgb(0 0 0 / 0.02), 0 12px 30px -18px rgb(20 18 32 / 0.18);
+  --shadow-glow: 0 14px 40px -12px color-mix(in oklab, var(--omni) 45%, transparent);
+}
+
+:root {
+  --radius: 0.875rem;
+
+  /* Editorial brand tokens */
+  --cream: oklch(0.985 0.006 60);          /* warm near-white */
+  --cream-soft: oklch(0.965 0.012 60);     /* card / hover */
+  --ink: oklch(0.18 0.025 280);            /* deep near-black */
+  --omni: oklch(0.55 0.22 27);             /* Omni-Man red */
+  --omni-soft: oklch(0.93 0.06 27);
+
+  /* shadcn semantic tokens — all light */
+  --background: oklch(1 0 0);              /* pure white */
+  --foreground: oklch(0.18 0.025 280);
+
+  --card: oklch(0.985 0.006 60);
+  --card-foreground: oklch(0.18 0.025 280);
+
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.025 280);
+
+  /* Primary CTA = ink (matches MetaMask black pill) */
+  --primary: oklch(0.18 0.025 280);
+  --primary-foreground: oklch(1 0 0);
+
+  --secondary: oklch(0.965 0.012 60);
+  --secondary-foreground: oklch(0.18 0.025 280);
+
+  --muted: oklch(0.965 0.012 60);
+  --muted-foreground: oklch(0.45 0.02 280);
+
+  /* Accent = Omni red */
+  --accent: oklch(0.55 0.22 27);
+  --accent-foreground: oklch(1 0 0);
+
+  --destructive: oklch(0.55 0.22 27);
+  --destructive-foreground: oklch(1 0 0);
+
+  --success: oklch(0.62 0.16 150);
+  --warning: oklch(0.78 0.16 80);
+
+  --border: oklch(0.92 0.005 280);
+  --input: oklch(0.92 0.005 280);
+  --ring: oklch(0.55 0.22 27);
+
+  --chart-1: oklch(0.55 0.22 27);          /* omni red */
+  --chart-2: oklch(0.18 0.025 280);        /* ink */
+  --chart-3: oklch(0.65 0.04 280);         /* mid grey */
+  --chart-4: oklch(0.78 0.16 80);          /* warm */
+  --chart-5: oklch(0.62 0.16 150);         /* success */
+
+  --sidebar: oklch(0.985 0.006 60);
+  --sidebar-foreground: oklch(0.18 0.025 280);
+  --sidebar-primary: oklch(0.55 0.22 27);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.96 0.006 60);
+  --sidebar-accent-foreground: oklch(0.18 0.025 280);
+  --sidebar-border: oklch(0.92 0.005 280);
+  --sidebar-ring: oklch(0.55 0.22 27);
+}
+
+/* Keep .dark variant as a no-op clone of light tokens so any inherited
+ * `dark:` prefixes don't flip surfaces back to dark. */
+.dark {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.18 0.025 280);
+  --card: oklch(0.985 0.006 60);
+  --card-foreground: oklch(0.18 0.025 280);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.025 280);
+  --primary: oklch(0.18 0.025 280);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.965 0.012 60);
+  --secondary-foreground: oklch(0.18 0.025 280);
+  --muted: oklch(0.965 0.012 60);
+  --muted-foreground: oklch(0.45 0.02 280);
+  --accent: oklch(0.55 0.22 27);
+  --accent-foreground: oklch(1 0 0);
+  --destructive: oklch(0.55 0.22 27);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.92 0.005 280);
+  --input: oklch(0.92 0.005 280);
+  --ring: oklch(0.55 0.22 27);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html,
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  .font-mono {
+    font-family: var(--font-mono);
+    letter-spacing: -0.01em;
+  }
+
+  .font-display {
+    font-family: var(--font-display);
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    line-height: 0.85;
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-14px); }
+}
+
+@layer utilities {
+  .bg-grid {
+    background-image:
+      linear-gradient(to right, color-mix(in oklab, var(--ink) 8%, transparent) 1px, transparent 1px),
+      linear-gradient(to bottom, color-mix(in oklab, var(--ink) 8%, transparent) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+
+  .text-gradient-omni {
+    background: linear-gradient(135deg, var(--omni), oklch(0.35 0.18 27));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}
