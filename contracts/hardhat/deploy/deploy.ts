@@ -12,7 +12,7 @@
  * Usage:
  *   PRIVATE_KEY=0x... RPC_URL=https://... npx hardhat run contracts/deploy/deploy.ts --network sepolia
  */
-import { ethers } from "hardhat";
+import { ethers, network } from "hardhat";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -73,7 +73,7 @@ async function main() {
   console.log("Harvester:", harvesterAddress);
 
   const out = {
-    network: "sepolia",
+    network: network.name,
     deployer: deployer.address,
     usdc: usdcAddress,
     metaVault: vaultAddress,
@@ -87,10 +87,11 @@ async function main() {
     timestamp: new Date().toISOString(),
   };
 
-  const outDir = path.join(__dirname, "..", "..", "deployments");
+  const outDir = path.join(process.cwd(), "..", "deployments");
   fs.mkdirSync(outDir, { recursive: true });
-  fs.writeFileSync(path.join(outDir, "sepolia.json"), JSON.stringify(out, null, 2));
-  console.log("\nWrote deployments/sepolia.json");
+  const outFile = path.join(outDir, `${network.name}.json`);
+  fs.writeFileSync(outFile, JSON.stringify(out, null, 2));
+  console.log(`\nWrote ${path.relative(path.join(process.cwd(), ".."), outFile)}`);
 }
 
 main().catch((err) => {
