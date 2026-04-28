@@ -1,15 +1,19 @@
 import { useState } from "react";
-import { useAccount } from "wagmi";
+import { useAccount, useChainId, useSwitchChain } from "wagmi";
 import { formatUnits } from "viem";
 import { ArrowDownToLine } from "lucide-react";
 import { useDeposit, useUsdc } from "@/hooks/useVault";
 import { USDC_DECIMALS } from "@/lib/contracts";
+import { sepolia } from "wagmi/chains";
 
 export function DepositForm() {
   const { isConnected } = useAccount();
+  const chainId = useChainId();
+  const { switchChain, isPending: isSwitching } = useSwitchChain();
   const { balance } = useUsdc();
   const { deposit, isPending, step } = useDeposit();
   const [amount, setAmount] = useState("");
+  const isWrongNetwork = isConnected && chainId !== sepolia.id;
 
   const usdcBalance = balance.data ? Number(formatUnits(balance.data as bigint, USDC_DECIMALS)) : 0;
   const num = Number(amount || "0");
@@ -63,11 +67,17 @@ export function DepositForm() {
       </div>
 
       <button
-        disabled={!isConnected || !num || isPending}
-        onClick={() => deposit(amount)}
+        disabled={isWrongNetwork ? isSwitching : !isConnected || !num || isPending}
+        onClick={() => {
+          if (isWrongNetwork) {
+            switchChain({ chainId: sepolia.id });
+            return;
+          }
+          deposit(amount);
+        }}
         className="mt-6 inline-flex w-full items-center justify-center rounded-lg bg-accent px-4 py-3 text-sm font-semibold text-accent-foreground transition-all hover:shadow-glow disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {isConnected ? cta : "Connect wallet first"}
+        {!isConnected ? "Connect wallet first" : isWrongNetwork ? (isSwitching ? "Switching…" : "Switch to Sepolia") : cta}
       </button>
 
       <p className="mt-3 text-center text-[11px] text-muted-foreground">

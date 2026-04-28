@@ -1,4 +1,5 @@
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { sepolia } from "wagmi/chains";
+import { useAccount, useChainId, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { parseUnits, formatUnits } from "viem";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
@@ -12,6 +13,7 @@ import {
 
 const VAULT_DEPLOYED =
   METAVAULT_ADDRESS !== "0x0000000000000000000000000000000000000000";
+const EXPECTED_CHAIN_ID = sepolia.id;
 
 /* ------------------------------------------------------------------ */
 /* Vault stats                                                        */
@@ -20,6 +22,7 @@ export function useVaultStats() {
   const { address } = useAccount();
 
   const totalAssets = useReadContract({
+    chainId: EXPECTED_CHAIN_ID,
     address: METAVAULT_ADDRESS,
     abi: METAVAULT_ABI,
     functionName: "totalAssets",
@@ -27,6 +30,7 @@ export function useVaultStats() {
   });
 
   const sharePrice = useReadContract({
+    chainId: EXPECTED_CHAIN_ID,
     address: METAVAULT_ADDRESS,
     abi: METAVAULT_ABI,
     functionName: "sharePrice",
@@ -34,6 +38,7 @@ export function useVaultStats() {
   });
 
   const userShares = useReadContract({
+    chainId: EXPECTED_CHAIN_ID,
     address: METAVAULT_ADDRESS,
     abi: METAVAULT_ABI,
     functionName: "shares",
@@ -42,6 +47,7 @@ export function useVaultStats() {
   });
 
   const userValue = useReadContract({
+    chainId: EXPECTED_CHAIN_ID,
     address: METAVAULT_ADDRESS,
     abi: METAVAULT_ABI,
     functionName: "getUserValue",
@@ -60,6 +66,7 @@ export function useUserPnL() {
   const { userValue } = useVaultStats();
 
   const deposited = useReadContract({
+    chainId: EXPECTED_CHAIN_ID,
     address: METAVAULT_ADDRESS,
     abi: METAVAULT_ABI,
     functionName: "depositedAmount",
@@ -100,6 +107,7 @@ export function useUsdc() {
   const { address } = useAccount();
 
   const balance = useReadContract({
+    chainId: EXPECTED_CHAIN_ID,
     address: USDC_ADDRESS,
     abi: ERC20_ABI,
     functionName: "balanceOf",
@@ -108,6 +116,7 @@ export function useUsdc() {
   });
 
   const allowance = useReadContract({
+    chainId: EXPECTED_CHAIN_ID,
     address: USDC_ADDRESS,
     abi: ERC20_ABI,
     functionName: "allowance",
@@ -122,6 +131,7 @@ export function useUsdc() {
 /* Deposit (approve -> deposit)                                       */
 /* ------------------------------------------------------------------ */
 export function useDeposit() {
+  const chainId = useChainId();
   const { allowance, balance } = useUsdc();
   const [step, setStep] = useState<"idle" | "approving" | "depositing">("idle");
   const { writeContractAsync, data: hash, reset } = useWriteContract();
@@ -138,6 +148,10 @@ export function useDeposit() {
   }, [receipt.isSuccess, hash, reset, balance, allowance]);
 
   async function deposit(amountStr: string) {
+    if (chainId !== EXPECTED_CHAIN_ID) {
+      toast.error("Wrong network: switch wallet to Ethereum Sepolia.");
+      return;
+    }
     if (!VAULT_DEPLOYED) {
       toast.error("Vault contract not yet deployed. Update lib/contracts.ts.");
       return;
@@ -149,6 +163,7 @@ export function useDeposit() {
         setStep("approving");
         const t = toast.loading("Approve USDC…");
         await writeContractAsync({
+          chainId: EXPECTED_CHAIN_ID,
           address: USDC_ADDRESS,
           abi: ERC20_ABI,
           functionName: "approve",
@@ -160,6 +175,7 @@ export function useDeposit() {
       setStep("depositing");
       const t2 = toast.loading("Depositing…");
       await writeContractAsync({
+        chainId: EXPECTED_CHAIN_ID,
         address: METAVAULT_ADDRESS,
         abi: METAVAULT_ABI,
         functionName: "deposit",
@@ -180,6 +196,7 @@ export function useDeposit() {
 /* Withdraw                                                           */
 /* ------------------------------------------------------------------ */
 export function useWithdraw() {
+  const chainId = useChainId();
   const [pending, setPending] = useState(false);
   const { writeContractAsync, data: hash, reset } = useWriteContract();
   const receipt = useWaitForTransactionReceipt({ hash });
@@ -193,6 +210,10 @@ export function useWithdraw() {
   }, [receipt.isSuccess, hash, reset]);
 
   async function withdraw(shareAmount: bigint) {
+    if (chainId !== EXPECTED_CHAIN_ID) {
+      toast.error("Wrong network: switch wallet to Ethereum Sepolia.");
+      return;
+    }
     if (!VAULT_DEPLOYED) {
       toast.error("Vault contract not yet deployed. Update lib/contracts.ts.");
       return;
@@ -201,6 +222,7 @@ export function useWithdraw() {
       setPending(true);
       const t = toast.loading("Withdrawing…");
       await writeContractAsync({
+        chainId: EXPECTED_CHAIN_ID,
         address: METAVAULT_ADDRESS,
         abi: METAVAULT_ABI,
         functionName: "withdraw",

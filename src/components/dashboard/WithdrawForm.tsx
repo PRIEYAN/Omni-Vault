@@ -1,15 +1,19 @@
 import { useMemo, useState } from "react";
-import { useAccount } from "wagmi";
+import { useAccount, useChainId, useSwitchChain } from "wagmi";
 import { ArrowUpFromLine } from "lucide-react";
 import { useUserPnL, useVaultStats, useWithdraw } from "@/hooks/useVault";
 import { formatUnits, parseUnits } from "viem";
 import { USDC_DECIMALS } from "@/lib/contracts";
+import { sepolia } from "wagmi/chains";
 
 export function WithdrawForm() {
   const { isConnected } = useAccount();
+  const chainId = useChainId();
+  const { switchChain, isPending: isSwitching } = useSwitchChain();
   const { userShares } = useVaultStats();
   const pnl = useUserPnL();
   const { withdraw, pending } = useWithdraw();
+  const isWrongNetwork = isConnected && chainId !== sepolia.id;
 
   const sharesBig = (userShares.data as bigint | undefined) ?? 0n;
   const sharesNum = Number(formatUnits(sharesBig, USDC_DECIMALS)) || (pnl.isMock ? 5483.21 : 0);
@@ -78,8 +82,12 @@ export function WithdrawForm() {
       </div>
 
       <button
-        disabled={!isConnected || pending || percent === 0}
+        disabled={isWrongNetwork ? isSwitching : !isConnected || pending || percent === 0}
         onClick={() => {
+          if (isWrongNetwork) {
+            switchChain({ chainId: sepolia.id });
+            return;
+          }
           const burn = (sharesBig * BigInt(percent)) / 100n;
           if (burn === 0n) {
             // mock path
@@ -90,7 +98,13 @@ export function WithdrawForm() {
         }}
         className="mt-6 inline-flex w-full items-center justify-center rounded-lg bg-accent px-4 py-3 text-sm font-semibold text-accent-foreground transition-all hover:shadow-glow disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {!isConnected ? "Connect wallet first" : pending ? "Withdrawing…" : "Confirm withdrawal"}
+        {!isConnected
+          ? "Connect wallet first"
+          : isWrongNetwork
+            ? (isSwitching ? "Switching…" : "Switch to Sepolia")
+            : pending
+              ? "Withdrawing…"
+              : "Confirm withdrawal"}
       </button>
     </div>
   );

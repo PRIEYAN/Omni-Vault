@@ -1,10 +1,8 @@
-// MetaVault contract config.
-// TODO: replace METAVAULT_ADDRESS with the real deployed address after running the deploy script.
-// TODO: replace METAVAULT_ABI with the JSON ABI from `artifacts/contracts/MetaVault.sol/MetaVault.json`.
+// MetaVault contract config (deployed on Ethereum Sepolia).
 
-export const METAVAULT_ADDRESS = "0x0000000000000000000000000000000000000000" as `0x${string}`;
-// USDC on Sepolia (Circle official testnet)
-export const USDC_ADDRESS = "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238" as `0x${string}`;
+export const METAVAULT_ADDRESS = "0x7dc508aC5EE4c9D864c0f1A1514efADD8295f76d" as `0x${string}`;
+// Mock USDC deployed with the same Ethereum Sepolia deployment.
+export const USDC_ADDRESS = "0xA9cA4740f15353c040C68eF4EB2a759A8E4F483D" as `0x${string}`;
 
 export const METAVAULT_ABI = [
   { type: "function", name: "deposit", stateMutability: "nonpayable", inputs: [{ name: "amount", type: "uint256" }], outputs: [] },
