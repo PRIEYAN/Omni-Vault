@@ -1,0 +1,125 @@
+Omni-Vault Sepolia Testing Guide (Deposit / Profit / Withdraw)
+
+You already have Sepolia ETH (0.0893), which is enough for gas.
+
+IMPORTANT:
+- This vault uses Mock USDC, not Circle Sepolia USDC.
+- Mock USDC contract: 0xA9cA4740f15353c040C68eF4EB2a759A8E4F483D
+- Vault contract:      0x7dc508aC5EE4c9D864c0f1A1514efADD8295f76d
+- Network must be Ethereum Sepolia (chain id 11155111).
+
+------------------------------------------------------------
+1) Start the app
+------------------------------------------------------------
+1. Open terminal in project root.
+2. Run:
+   npm run dev
+3. Open the local app URL shown in terminal.
+4. Connect wallet.
+5. Confirm top-right badge says Sepolia and your ETH balance is visible.
+
+------------------------------------------------------------
+2) Mint Mock USDC to your wallet (required before deposit)
+------------------------------------------------------------
+Option A (easy, no CLI):
+1. Open Sepolia Etherscan for Mock USDC:
+   https://sepolia.etherscan.io/address/0xA9cA4740f15353c040C68eF4EB2a759A8E4F483D#writeContract
+2. Connect wallet.
+3. Call function mint(address to, uint256 amount):
+   - to     = your wallet address
+   - amount = 1000000000   (this means 1000.000000 USDC, token has 6 decimals)
+4. Confirm transaction.
+
+Option B (CLI, if you use cast/foundry):
+cast send 0xA9cA4740f15353c040C68eF4EB2a759A8E4F483D \
+  "mint(address,uint256)" YOUR_WALLET 1000000000 \
+  --rpc-url https://eth-sepolia.g.alchemy.com/v2/<KEY> \
+  --private-key <PRIVATE_KEY>
+
+After minting, refresh app and confirm USDC balance appears in Deposit tab.
+
+------------------------------------------------------------
+3) Test Deposit flow
+------------------------------------------------------------
+1. Go to Deposit tab.
+2. Enter amount (example: 100).
+3. Click "Approve & Deposit".
+4. Approve transaction in wallet (USDC allowance).
+5. Confirm second transaction (vault deposit).
+6. Verify after confirmation:
+   - Total Deposited increases.
+   - Current Value updates.
+   - Shares increase.
+   - A new transaction appears in History.
+
+------------------------------------------------------------
+4) Simulate Profit (so you can test PnL/Withdraw profit)
+------------------------------------------------------------
+Because real strategy yield is not instant, simulate profit by sending extra Mock USDC
+to the vault contract directly.
+
+Option A (wallet transfer):
+1. Add Mock USDC token to wallet (if not visible).
+2. Send some Mock USDC to vault address:
+   0x7dc508aC5EE4c9D864c0f1A1514efADD8295f76d
+3. Example: send 10 USDC.
+
+What this does:
+- Vault total assets go up while your shares stay same.
+- Share price increases.
+- Your "Current Value" becomes greater than "Total Deposited" (profit shown).
+
+------------------------------------------------------------
+5) Test Withdraw flow
+------------------------------------------------------------
+1. Go to Withdraw tab.
+2. Move slider to 25% / 50% / 100%.
+3. Click "Confirm withdrawal".
+4. Confirm wallet transaction.
+5. Verify:
+   - Your shares decrease.
+   - Your wallet Mock USDC balance increases.
+   - History shows withdraw entry.
+   - If profit was simulated, received amount should reflect gain minus fee.
+
+------------------------------------------------------------
+6) Expected fee behavior
+------------------------------------------------------------
+Vault has performance fee on profit:
+- performanceFee = 1000 bps (10%)
+- Fee applies only to profit portion during withdraw.
+
+Example:
+- Deposited = 100
+- Current value before withdraw = 120
+- Profit = 20
+- Fee = 2
+- Net payout = 118 (for full withdraw)
+
+------------------------------------------------------------
+7) Common issues and fixes
+------------------------------------------------------------
+Issue: "Wrong network" / chain id mismatch
+Fix: Switch wallet to Ethereum Sepolia.
+
+Issue: deposit reverted
+Fix:
+- Ensure you minted Mock USDC (not only ETH).
+- Ensure enough Sepolia ETH for gas.
+- Retry approve + deposit.
+
+Issue: still no profit
+Fix:
+- Send Mock USDC directly to vault to simulate yield, then refresh app.
+
+------------------------------------------------------------
+8) Quick checklist
+------------------------------------------------------------
+[ ] Wallet connected on Sepolia
+[ ] Sepolia ETH > 0
+[ ] Mock USDC minted to wallet
+[ ] Deposit successful
+[ ] Profit simulated by sending Mock USDC to vault
+[ ] Withdraw successful
+[ ] History updated
+

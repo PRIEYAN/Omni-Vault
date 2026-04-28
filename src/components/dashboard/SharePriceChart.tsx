@@ -1,20 +1,23 @@
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-
-// TODO: replace with on-chain historical share-price data once vault is deployed.
-const data = Array.from({ length: 30 }, (_, i) => {
-  const base = 1 + i * 0.0042;
-  const noise = Math.sin(i / 3) * 0.004;
-  return {
-    day: `D${i + 1}`,
-    price: +(base + noise).toFixed(4),
-  };
-});
+import { useMemo } from "react";
+import { formatUnits } from "viem";
+import { useVaultStats } from "@/hooks/useVault";
 
 const RED = "#C8102E";
 const INK = "#1A1330";
 const MUTED = "#7A7585";
 
 export function SharePriceChart() {
+  const { sharePrice } = useVaultStats();
+  const latest = sharePrice.data ? Number(formatUnits(sharePrice.data as bigint, 18)) : 0;
+  const data = useMemo(
+    () => [
+      { slot: "Latest", price: Number(latest.toFixed(4)) },
+      { slot: "Latest", price: Number(latest.toFixed(4)) },
+    ],
+    [latest],
+  );
+
   return (
     <div className="rounded-2xl border border-border bg-background p-5 shadow-card">
       <div className="flex items-end justify-between">
@@ -23,11 +26,11 @@ export function SharePriceChart() {
             Share Price (USDC)
           </div>
           <div className="mt-1 text-2xl font-semibold tracking-tight">
-            ${data[data.length - 1].price.toFixed(4)}
+            ${latest.toFixed(4)}
           </div>
         </div>
         <div className="rounded-full bg-accent/10 px-2.5 py-1 text-xs font-bold text-accent">
-          +12.8% APY
+          Live on-chain
         </div>
       </div>
       <div className="mt-6 h-56">
@@ -39,7 +42,7 @@ export function SharePriceChart() {
                 <stop offset="95%" stopColor={RED} stopOpacity={0} />
               </linearGradient>
             </defs>
-            <XAxis dataKey="day" stroke={MUTED} fontSize={10} tickLine={false} axisLine={false} />
+            <XAxis dataKey="slot" stroke={MUTED} fontSize={10} tickLine={false} axisLine={false} />
             <YAxis stroke={MUTED} fontSize={10} tickLine={false} axisLine={false} domain={["auto", "auto"]} />
             <Tooltip
               contentStyle={{
@@ -56,6 +59,9 @@ export function SharePriceChart() {
           </AreaChart>
         </ResponsiveContainer>
       </div>
+      <p className="mt-3 text-xs text-muted-foreground">
+        Historical share price is unavailable until an indexer is connected.
+      </p>
     </div>
   );
 }

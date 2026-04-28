@@ -10,6 +10,8 @@ import {
   USDC_ADDRESS,
   USDC_DECIMALS,
 } from "@/lib/contracts";
+import { usePublicClient } from "wagmi";
+import { Address } from "viem";
 
 const VAULT_DEPLOYED =
   METAVAULT_ADDRESS !== "0x0000000000000000000000000000000000000000";
@@ -75,16 +77,12 @@ export function useUserPnL() {
   });
 
   return useMemo(() => {
-    // TODO: replace with real on-chain reads once contract is deployed.
     if (!VAULT_DEPLOYED) {
-      const dep = 5000;
-      const cur = 5483.21;
       return {
-        deposited: dep,
-        currentValue: cur,
-        pnl: cur - dep,
-        pnlPercent: ((cur - dep) / dep) * 100,
-        isMock: true,
+        deposited: 0,
+        currentValue: 0,
+        pnl: 0,
+        pnlPercent: 0,
       };
     }
     const dep = deposited.data ? Number(formatUnits(deposited.data as bigint, USDC_DECIMALS)) : 0;
@@ -95,9 +93,179 @@ export function useUserPnL() {
       currentValue: cur,
       pnl,
       pnlPercent: dep > 0 ? (pnl / dep) * 100 : 0,
-      isMock: false,
     };
   }, [deposited.data, userValue.data]);
+}
+
+export type VaultActivity = {
+  type: "Deposit" | "Withdraw";
+  amount: bigint;
+  shares: bigint;
+  hash: `0x${string}`;
+  timestampMs: number;
+};
+
+export function useVaultActivity() {
+  const { address } = useAccount();
+  const publicClient = usePublicClient({ chainId: EXPECTED_CHAIN_ID });
+  const [rows, setRows] = useState<VaultActivity[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let isCancelled = false;
+    async function load() {
+      if (!address || !VAULT_DEPLOYED || !publicClient) {
+        setRows([]);
+        return;
+      }
+      setLoading(true);
+      try {
+        const [depositLogs, withdrawLogs] = await Promise.all([
+          publicClient.getLogs({
+            address: METAVAULT_ADDRESS,
+            event: {
+              type: "event",
+              name: "Deposit",
+              inputs: [
+                { type: "address", name: "user", indexed: true },
+                { type: "uint256", name: "amount" },
+                { type: "uint256", name: "shares" },
+              ],
+            },
+            args: { user: address },
+            fromBlock: 0n,
+            toBlock: "latest",
+          }),
+          publicClient.getLogs({
+            address: METAVAULT_ADDRESS,
+            event: {
+              type: "event",
+              name: "Withdraw",
+              inputs: [
+                { type: "address", name: "user", indexed: true },
+                { type: "uint256", name: "shares" },
+                { type: "uint256", name: "amount" },
+              ],
+            },
+            args: { user: address },
+            fromBlock: 0n,
+            toBlock: "latest",
+          }),
+        ]);
+
+        const rowsWithBlocks = await Promise.all(
+          [...depositLogs, ...withdrawLogs].map(async (log) => {
+            const block = await publicClient.getBlock({ blockHash: log.blockHash! });
+            if (log.eventName === "Deposit") {
+              return {
+                type: "Deposit" as const,
+                amount: log.args.amount as bigint,
+                shares: log.args.shares as bigint,
+                hash: log.transactionHash!,
+                timestampMs: Number(block.timestamp) * 1000,
+              };
+            }
+            return {
+              type: "Withdraw" as const,
+              amount: log.args.amount as bigint,
+              shares: log.args.shares as bigint,
+              hash: log.transactionHash!,
+              timestampMs: Number(block.timestamp) * 1000,
+            };
+          }),
+        );
+
+        rowsWithBlocks.sort((a, b) => b.timestampMs - a.timestampMs);
+        if (!isCancelled) setRows(rowsWithBlocks);
+      } catch {
+        if (!isCancelled) setRows([]);
+      } finally {
+        if (!isCancelled) setLoading(false);
+      }
+    }
+    load();
+    return () => {
+      isCancelled = true;
+    };
+  }, [address, publicClient]);
+
+  return { rows, loading };
+}
+
+const STRATEGY_ABI = [
+  {
+    type: "function",
+    name: "totalAssets",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ type: "uint256" }],
+  },
+] as const;
+
+export type StrategySnapshot = {
+  index: number;
+  address: Address;
+  allocationBps: number;
+  totalAssets: bigint;
+};
+
+export function useVaultStrategies() {
+  const publicClient = usePublicClient({ chainId: EXPECTED_CHAIN_ID });
+  const [strategies, setStrategies] = useState<StrategySnapshot[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      if (!VAULT_DEPLOYED || !publicClient) return;
+      setLoading(true);
+      try {
+        const next: StrategySnapshot[] = [];
+        for (let i = 0; i < 10; i++) {
+          try {
+            const [strategyAddress, allocationRaw] = await Promise.all([
+              publicClient.readContract({
+                address: METAVAULT_ADDRESS,
+                abi: METAVAULT_ABI,
+                functionName: "strategies",
+                args: [BigInt(i)],
+              }),
+              publicClient.readContract({
+                address: METAVAULT_ADDRESS,
+                abi: METAVAULT_ABI,
+                functionName: "allocations",
+                args: [BigInt(i)],
+              }),
+            ]);
+            const totalAssets = (await publicClient.readContract({
+              address: strategyAddress as Address,
+              abi: STRATEGY_ABI,
+              functionName: "totalAssets",
+            })) as bigint;
+
+            next.push({
+              index: i,
+              address: strategyAddress as Address,
+              allocationBps: Number(allocationRaw),
+              totalAssets,
+            });
+          } catch {
+            break;
+          }
+        }
+        if (!cancelled) setStrategies(next);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [publicClient]);
+
+  return { strategies, loading };
 }
 
 /* ------------------------------------------------------------------ */

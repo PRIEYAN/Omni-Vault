@@ -8,15 +8,6 @@ export type Activity = {
   shares?: string;
 };
 
-// TODO: read from on-chain events / indexer. Mock for now.
-export const MOCK_ACTIVITY: Activity[] = [
-  { type: "Deposit", amount: "+1,000.00 USDC", shares: "987.42", date: "2h ago",  hash: "0x84a2…f19b" },
-  { type: "Deposit", amount: "+2,500.00 USDC", shares: "2,461.18", date: "1d ago",  hash: "0x12cc…aa90" },
-  { type: "Withdraw", amount: "−500.00 USDC", shares: "488.10",  date: "3d ago",  hash: "0xee71…0c44" },
-  { type: "Deposit", amount: "+1,500.00 USDC", shares: "1,484.20", date: "1w ago",  hash: "0x55b1…7732" },
-  { type: "Deposit", amount: "+500.00 USDC",  shares: "499.10", date: "2w ago",  hash: "0xab09…dd13" },
-];
-
 export function HistoryTable({
   rows,
   showFilters = false,
@@ -64,6 +55,13 @@ export function HistoryTable({
             </tr>
           </thead>
           <tbody>
+            {rows.length === 0 && (
+              <tr className="border-t border-border/60">
+                <td className="px-5 py-6 text-center text-muted-foreground" colSpan={5}>
+                  No on-chain activity yet.
+                </td>
+              </tr>
+            )}
             {rows.map((r, i) => (
               <tr key={i} className="border-t border-border/60 transition-colors hover:bg-background/40">
                 <td className="px-5 py-3.5 text-muted-foreground">{r.date}</td>

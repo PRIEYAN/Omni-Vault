@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useAccount, useDisconnect } from "wagmi";
+import { sepolia } from "wagmi/chains";
+import { useAccount, useBalance, useDisconnect } from "wagmi";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { formatUnits } from "viem";
 import {
   LayoutDashboard,
   ArrowDownToLine,
@@ -18,8 +20,9 @@ import { AllocationChart } from "@/components/dashboard/AllocationChart";
 import { DepositForm } from "@/components/dashboard/DepositForm";
 import { WithdrawForm } from "@/components/dashboard/WithdrawForm";
 import { StrategyCards } from "@/components/dashboard/StrategyCards";
-import { HistoryTable, MOCK_ACTIVITY } from "@/components/dashboard/HistoryTable";
-import { useUserPnL } from "@/hooks/useVault";
+import { HistoryTable } from "@/components/dashboard/HistoryTable";
+import { useUserPnL, useVaultActivity, useVaultStats } from "@/hooks/useVault";
+import { USDC_DECIMALS } from "@/lib/contracts";
 import omniLogo from "@/assets/omni-logo.png";
 
 export const Route = createFileRoute("/dashboard")({
@@ -44,9 +47,34 @@ function shorten(addr?: string) {
 function DashboardPage() {
   const { address, isConnected, chain } = useAccount();
   const { disconnect } = useDisconnect();
+  const walletBalance = useBalance({
+    address,
+    chainId: sepolia.id,
+    query: { enabled: !!address },
+  });
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>("dashboard");
   const pnl = useUserPnL();
+  const { sharePrice } = useVaultStats();
+  const { rows: activityRows } = useVaultActivity();
+
+  const activity = useMemo(
+    () =>
+      activityRows.map((row) => ({
+        type: row.type,
+        amount: `${row.type === "Deposit" ? "+" : "-"}${Number(
+          formatUnits(row.amount, USDC_DECIMALS),
+        ).toFixed(2)} USDC`,
+        shares: Number(formatUnits(row.shares, USDC_DECIMALS)).toFixed(4),
+        date: new Date(row.timestampMs).toLocaleString(),
+        hash: row.hash,
+      })),
+    [activityRows],
+  );
+
+  const sharePriceValue = sharePrice.data
+    ? Number(formatUnits(sharePrice.data as bigint, 18)).toFixed(4)
+    : "0.0000";
 
   // Protect route — bounce back to onboarding if not connected.
   // Wait one tick so wagmi hydrates connector state before redirecting.
@@ -67,10 +95,10 @@ function DashboardPage() {
         delta: `${pnl.pnlPercent >= 0 ? "+" : ""}${pnl.pnlPercent.toFixed(2)}%`,
         deltaTone: (pnl.pnl >= 0 ? "up" : "down") as "up" | "down",
       },
-      { label: "Share Price", value: "$1.0987", hint: "mvUSDC" },
-      { label: "APY (30d)", value: "12.8%", delta: "+0.4%", deltaTone: "up" as const },
+      { label: "Share Price", value: `$${sharePriceValue}`, hint: "mvUSDC" },
+      { label: "APY (30d)", value: "N/A", hint: "Needs indexer" },
     ],
-    [pnl],
+    [pnl, sharePriceValue],
   );
 
   return (
@@ -143,6 +171,11 @@ function DashboardPage() {
 
               {isConnected ? (
                 <div className="flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5">
+                  <span className="font-mono text-xs text-muted-foreground">
+                    {walletBalance.data
+                      ? `${Number(walletBalance.data.formatted).toFixed(4)} ${walletBalance.data.symbol}`
+                      : "0.0000 ETH"}
+                  </span>
                   <Wallet className="h-3.5 w-3.5 text-accent" />
                   <span className="font-mono text-xs">{shorten(address)}</span>
                   <button
@@ -187,7 +220,7 @@ function DashboardPage() {
                   </div>
                   <AllocationChart />
                 </div>
-                <HistoryTable rows={MOCK_ACTIVITY} />
+                <HistoryTable rows={activity} />
               </div>
             )}
 
@@ -229,7 +262,7 @@ function DashboardPage() {
                     All your deposits and withdrawals on Sepolia.
                   </p>
                 </div>
-                <HistoryTable rows={MOCK_ACTIVITY} showFilters />
+                <HistoryTable rows={activity} showFilters />
               </div>
             )}
           </main>

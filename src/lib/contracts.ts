@@ -13,6 +13,8 @@ export const METAVAULT_ABI = [
   { type: "function", name: "depositedAmount", stateMutability: "view", inputs: [{ name: "user", type: "address" }], outputs: [{ type: "uint256" }] },
   { type: "function", name: "sharePrice", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
   { type: "function", name: "getUserValue", stateMutability: "view", inputs: [{ name: "user", type: "address" }], outputs: [{ type: "uint256" }] },
+  { type: "function", name: "strategies", stateMutability: "view", inputs: [{ name: "", type: "uint256" }], outputs: [{ type: "address" }] },
+  { type: "function", name: "allocations", stateMutability: "view", inputs: [{ name: "", type: "uint256" }], outputs: [{ type: "uint256" }] },
 ] as const;
 
 export const ERC20_ABI = [

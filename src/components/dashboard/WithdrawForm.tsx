@@ -16,7 +16,7 @@ export function WithdrawForm() {
   const isWrongNetwork = isConnected && chainId !== sepolia.id;
 
   const sharesBig = (userShares.data as bigint | undefined) ?? 0n;
-  const sharesNum = Number(formatUnits(sharesBig, USDC_DECIMALS)) || (pnl.isMock ? 5483.21 : 0);
+  const sharesNum = Number(formatUnits(sharesBig, USDC_DECIMALS));
 
   const [percent, setPercent] = useState(50);
 
@@ -90,7 +90,6 @@ export function WithdrawForm() {
           }
           const burn = (sharesBig * BigInt(percent)) / 100n;
           if (burn === 0n) {
-            // mock path
             withdraw(parseUnits(sharesToBurn.toFixed(6), USDC_DECIMALS));
           } else {
             withdraw(burn);
