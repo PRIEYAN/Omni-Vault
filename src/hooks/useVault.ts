@@ -120,6 +120,12 @@ export function useVaultActivity() {
       }
       setLoading(true);
       try {
+        // Fetching from block 0 can be slow / unreliable on some RPCs.
+        // We only need recent activity for the UI.
+        const latestBlock = await publicClient.getBlockNumber();
+        const fromBlock = latestBlock > 50000n ? latestBlock - 50000n : 0n;
+        const userLower = address.toLowerCase();
+
         const [depositLogs, withdrawLogs] = await Promise.all([
           publicClient.getLogs({
             address: METAVAULT_ADDRESS,
@@ -132,8 +138,8 @@ export function useVaultActivity() {
                 { type: "uint256", name: "shares" },
               ],
             },
-            args: { user: address },
-            fromBlock: 0n,
+            // Don't rely on args filtering via RPC; filter locally to avoid silent mismatches.
+            fromBlock,
             toBlock: "latest",
           }),
           publicClient.getLogs({
@@ -147,15 +153,22 @@ export function useVaultActivity() {
                 { type: "uint256", name: "amount" },
               ],
             },
-            args: { user: address },
-            fromBlock: 0n,
+            fromBlock,
             toBlock: "latest",
           }),
         ]);
 
+        // Filter logs locally by user address (RPC-side args filters are not always consistent).
+        const depositLogsForUser = depositLogs.filter((log) => (log.args as any).user?.toLowerCase?.() === userLower);
+        const withdrawLogsForUser = withdrawLogs.filter((log) => (log.args as any).user?.toLowerCase?.() === userLower);
+
         const rowsWithBlocks = await Promise.all(
-          [...depositLogs, ...withdrawLogs].map(async (log) => {
-            const block = await publicClient.getBlock({ blockHash: log.blockHash! });
+          [...depositLogsForUser, ...withdrawLogsForUser].map(async (log) => {
+            const block =
+              log.blockHash != null
+                ? await publicClient.getBlock({ blockHash: log.blockHash })
+                : await publicClient.getBlock({ blockNumber: log.blockNumber! });
+
             if (log.eventName === "Deposit") {
               return {
                 type: "Deposit" as const,
@@ -177,7 +190,9 @@ export function useVaultActivity() {
 
         rowsWithBlocks.sort((a, b) => b.timestampMs - a.timestampMs);
         if (!isCancelled) setRows(rowsWithBlocks);
-      } catch {
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error("useVaultActivity: failed to load logs", e);
         if (!isCancelled) setRows([]);
       } finally {
         if (!isCancelled) setLoading(false);
